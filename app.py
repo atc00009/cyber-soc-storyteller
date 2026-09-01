@@ -5,68 +5,46 @@ import plotly.express as px
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# --- 1. PAGE CONFIGURATION ---
+# --- 1. PAGE SETUP ---
 st.set_page_config(
     layout="wide", 
-    page_title="CyberShield SOC | Visual Storyteller", 
-    page_icon="🛡️",
-    initial_sidebar_state="expanded"
+    page_title="CyberShield SOC | Executive Dashboard", 
+    page_icon="🛡️"
 )
 
-# --- 2. CUSTOM CSS FOR ULTRA-DARK GESTALT UI ---
+# --- 2. CLEAN DARK THEME CSS ---
 st.markdown("""
 <style>
-    /* Global Dark Theme Background */
+    /* Dark Slate Background */
     .stApp {
-        background-color: #0E1117;
-        color: #E6EDF3;
+        background-color: #0F172A;
+        color: #F8FAFC;
     }
     
-    /* Sidebar Dark Styling */
-    section[data-testid="stSidebar"] {
-        background-color: #161B22 !important;
-        border-right: 1px solid #30363D;
-    }
-    
-    /* Gestalt Common Region Cards */
+    /* Clean Cards */
     div.css-card {
-        background-color: #161B22;
-        border: 1px solid #30363D;
-        border-radius: 10px;
+        background-color: #1E293B;
+        border: 1px solid #334155;
+        border-radius: 8px;
         padding: 20px;
         margin-bottom: 20px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     }
     
-    /* Custom KPI Metric Cards */
+    /* Metric Card Styling */
     div[data-testid="stMetricValue"] {
-        color: #00F2FE !important;
-        font-family: 'Courier New', monospace;
-        font-weight: bold;
-        font-size: 2.2rem !important;
+        color: #38BDF8 !important;
+        font-family: monospace;
     }
-    
     div[data-testid="stMetricLabel"] {
-        color: #8B949E !important;
-        font-size: 0.9rem !important;
-        text-transform: uppercase;
-        letter-spacing: 1px;
+        color: #94A3B8 !important;
     }
 
-    /* Tab Custom Styling */
-    button[data-baseweb="tab"] {
-        background-color: #161B22 !important;
-        color: #8B949E !important;
-        border-radius: 6px !important;
-        padding: 10px 20px !important;
-        border: 1px solid #30363D !important;
-        margin-right: 8px !important;
-    }
-    
-    button[data-baseweb="tab"][aria-selected="true"] {
-        background: linear-gradient(90deg, #4FACFE 0%, #00F2FE 100%) !important;
-        color: #0E1117 !important;
-        font-weight: bold !important;
+    /* Multi-select Badges (Soft Cyan / Dark Text for High Readability) */
+    span[data-baseweb="tag"] {
+        background-color: #38BDF8 !important;
+        color: #0F172A !important;
+        font-weight: 600;
+        border-radius: 4px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -104,9 +82,9 @@ def generate_soc_data():
 
 df = generate_soc_data()
 
-# --- 4. HEADER SECTION ---
+# --- 4. HEADER ---
 st.title("🛡️ CYBERSHIELD SOC: EXECUTIVE DASHBOARD")
-st.markdown("<span style='color: #8B949E;'>Applying Gestalt Psychology (Enclosure, Proximity, Similarity) to Security Analytics</span>", unsafe_allow_html=True)
+st.caption("Applying Gestalt Visual Psychology (Enclosure, Proximity, Similarity) to Security Analytics")
 st.markdown("---")
 
 # Sidebar Controls
@@ -116,7 +94,7 @@ selected_threats = st.sidebar.multiselect("Threat Vectors", options=df["Threat_T
 
 filtered_df = df[(df["Data_Center"].isin(selected_centers)) & (df["Threat_Type"].isin(selected_threats))]
 
-# --- 5. TOP KPI BANNER (Gestalt Proximity) ---
+# KPI Banner
 k1, k2, k3, k4 = st.columns(4)
 k1.metric("Global Incidents", f"{len(filtered_df):,}")
 k2.metric("Total Cost", f"${filtered_df['Mitigation_Cost_USD'].sum()/1e6:.2f}M")
@@ -125,32 +103,19 @@ k4.metric("Mean Downtime", f"{filtered_df['System_Downtime_Mins'].mean():.1f}m")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- 6. TABS NAVIGATION ---
+# Navigation Tabs
 tab1, tab2, tab3, tab4 = st.tabs([
-    "🗺️ Spatial Map (Macro Story)", 
-    "🎻 Violin & Box Plots (Distribution)", 
-    "📊 Heatmap & Pairplot (Correlation)", 
+    "🗺️ Spatial Map", 
+    "🎻 Distribution (Box & Violin)", 
+    "📊 Heatmap & Pairplot", 
     "🤖 AI Executive Briefing"
 ])
 
-# PLOTLY DARK TEMPLATE HELPER
-def style_dark_plotly(fig):
-    fig.update_layout(
-        paper_bgcolor="#161B22",
-        plot_bgcolor="#161B22",
-        font=dict(color="#E6EDF3", family="Arial"),
-        margin=dict(l=20, r=20, t=40, b=20),
-        coloraxis_colorbar=dict(title_font_color="#E6EDF3", tickfont_color="#E6EDF3")
-    )
-    return fig
-
-# ==========================================
-# TAB 1: SPATIAL MAP
-# ==========================================
+# --- TAB 1: SPATIAL MAP (FIXED FOR PLOTLY UPGRADE) ---
 with tab1:
     st.markdown("<div class='css-card'>", unsafe_allow_html=True)
     st.subheader("1. Spatial Regional Performance Mapping")
-    st.caption("🧠 Gestalt Law applied: Figure-Ground & Proximity. Bright neon nodes ground threats geographically.")
+    st.caption("🧠 Gestalt Law applied: Figure-Ground & Proximity.")
     
     spatial_df = filtered_df.groupby(["Data_Center", "Lat", "Lon"]).agg({
         "Mitigation_Cost_USD": "sum",
@@ -159,68 +124,60 @@ with tab1:
         "Severity_Score": "count"
     }).reset_index().rename(columns={"Severity_Score": "Incident_Count"})
     
-    fig_map = px.scatter_mapbox(
-        spatial_df, lat="Lat", lon="Lon", size="Incident_Count", color="Mitigation_Cost_USD",
-        hover_name="Data_Center", hover_data=["System_Downtime_Mins", "Response_Time_Sec"],
-        color_continuous_scale="Plasma", size_max=35, zoom=1, mapbox_style="carto-darkmatter",
-        title="Global Incident Density & Financial Impact Map"
-    )
-    fig_map = style_dark_plotly(fig_map)
+    # Updated to px.scatter_map (or fallback to scatter_geo for universal compatibility)
+    try:
+        fig_map = px.scatter_map(
+            spatial_df, lat="Lat", lon="Lon", size="Incident_Count", color="Mitigation_Cost_USD",
+            hover_name="Data_Center", color_continuous_scale="Viridis", size_max=30, zoom=1,
+            title="Global Incident Density & Financial Impact Map"
+        )
+    except AttributeError:
+        fig_map = px.scatter_geo(
+            spatial_df, lat="Lat", lon="Lon", size="Incident_Count", color="Mitigation_Cost_USD",
+            hover_name="Data_Center", color_continuous_scale="Viridis", size_max=30,
+            title="Global Incident Density & Financial Impact Map"
+        )
+        
+    fig_map.update_layout(template="plotly_dark", paper_bgcolor="#1E293B", plot_bgcolor="#1E293B")
     st.plotly_chart(fig_map, use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# ==========================================
-# TAB 2: VIOLIN & BOX PLOTS
-# ==========================================
+# --- TAB 2: VIOLIN & BOX PLOTS ---
 with tab2:
     col1, col2 = st.columns(2)
-    
     with col1:
         st.markdown("<div class='css-card'>", unsafe_allow_html=True)
-        st.subheader("Mitigation Cost Distribution")
-        st.caption("🧠 Law of Common Region: Box inside Violin curve isolates standard zone from tail risks.")
-        
         fig_violin = px.violin(
             filtered_df, x="Threat_Type", y="Mitigation_Cost_USD", color="Threat_Type",
-            box=True, points="outliers", color_discrete_sequence=px.colors.qualitative.Cyan
+            box=True, points="outliers", title="Mitigation Cost Distribution"
         )
-        fig_violin = style_dark_plotly(fig_violin)
+        fig_violin.update_layout(template="plotly_dark", paper_bgcolor="#1E293B", plot_bgcolor="#1E293B")
         st.plotly_chart(fig_violin, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
         
     with col2:
         st.markdown("<div class='css-card'>", unsafe_allow_html=True)
-        st.subheader("Regional Latency Variance")
-        st.caption("🧠 Law of Closure: Bounded box plots reveal outlier data center latency spikes.")
-        
         fig_box = px.box(
             filtered_df, x="Data_Center", y="Response_Time_Sec", color="Data_Center",
-            color_discrete_sequence=px.colors.qualitative.Dark24
+            title="Regional Latency Variance"
         )
-        fig_box = style_dark_plotly(fig_box)
+        fig_box.update_layout(template="plotly_dark", paper_bgcolor="#1E293B", plot_bgcolor="#1E293B")
         st.plotly_chart(fig_box, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-# ==========================================
-# TAB 3: HEATMAP & PAIRPLOT
-# ==========================================
+# --- TAB 3: HEATMAP & PAIRPLOT ---
 with tab3:
     c_hm, c_pp = st.columns([1, 1])
-    
     with c_hm:
         st.markdown("<div class='css-card'>", unsafe_allow_html=True)
         st.subheader("Correlation Matrix")
-        st.caption("🧠 Law of Similarity: High contrast hue gradients instantly cluster dependent risk drivers.")
-        
         num_cols = ["Response_Time_Sec", "Mitigation_Cost_USD", "Packets_Blocked_M", "Severity_Score", "System_Downtime_Mins"]
         corr = filtered_df[num_cols].corr()
         
         fig_hm, ax_hm = plt.subplots(figsize=(6, 5))
-        fig_hm.patch.set_facecolor('#161B22')
-        ax_hm.set_facecolor('#161B22')
-        
-        sns.heatmap(corr, annot=True, fmt=".2f", cmap="mako", ax=ax_hm, cbar=False, 
-                    annot_kws={"color": "white", "size": 10})
+        fig_hm.patch.set_facecolor('#1E293B')
+        ax_hm.set_facecolor('#1E293B')
+        sns.heatmap(corr, annot=True, fmt=".2f", cmap="mako", ax=ax_hm, cbar=False, annot_kws={"color": "white"})
         ax_hm.tick_params(colors='white')
         st.pyplot(fig_hm)
         st.markdown("</div>", unsafe_allow_html=True)
@@ -228,49 +185,25 @@ with tab3:
     with c_pp:
         st.markdown("<div class='css-card'>", unsafe_allow_html=True)
         st.subheader("Multivariate Pairplot Grid")
-        st.caption("🧠 Law of Continuity: Multi-axis grids force continuous eye tracking across relationships.")
-        
         pair_cols = ["Mitigation_Cost_USD", "Severity_Score", "System_Downtime_Mins"]
-        pair_df = filtered_df[pair_cols + ["Threat_Type"]]
-        
-        fig_pair = sns.pairplot(pair_df, hue="Threat_Type", palette="magma", corner=True)
-        fig_pair.fig.patch.set_facecolor('#161B22')
+        fig_pair = sns.pairplot(filtered_df[pair_cols + ["Threat_Type"]], hue="Threat_Type", palette="mako", corner=True)
+        fig_pair.fig.patch.set_facecolor('#1E293B')
         for ax in fig_pair.axes.flatten():
             if ax is not None:
-                ax.set_facecolor('#161B22')
+                ax.set_facecolor('#1E293B')
                 ax.xaxis.label.set_color('white')
                 ax.yaxis.label.set_color('white')
                 ax.tick_params(colors='white')
         st.pyplot(fig_pair.fig)
         st.markdown("</div>", unsafe_allow_html=True)
 
-# ==========================================
-# TAB 4: AI STORYTELLER
-# ==========================================
+# --- TAB 4: AI STORYTELLER ---
 with tab4:
     st.markdown("<div class='css-card'>", unsafe_allow_html=True)
     st.subheader("4. AI Stakeholder Narrative Engine")
-    st.write("Generate positive, solution-oriented executive stories for C-suite presentation.")
+    audience = st.selectbox("Target Stakeholder", ["CISO", "CFO", "Board of Directors"])
     
-    audience = st.selectbox("Select Target Stakeholder Audience", ["CISO", "CFO", "Board of Directors"])
-    
-    if st.button("🚀 Generate Positive Strategic Story"):
+    if st.button("🚀 Generate Executive Briefing"):
         top_cost_center = spatial_df.loc[spatial_df['Mitigation_Cost_USD'].idxmax()]['Data_Center']
-        
-        story = f"""
-        ### Executive Briefing for **{audience}**
-        
-        **Act 1: Regional Operational Growth (Spatial Map)**
-        Our global SOC infrastructure maintained robust defense coverage across all international hubs. **{top_cost_center}** managed our highest operational volume globally, acting as our primary protective shield and driving high network utility.
-        
-        **Act 2: Cost Control & Variance Analysis (Violin Plots & Heatmaps)**
-        * **Cost Predictability:** Standard threats (DDoS, Phishing) show tight, predictable cost clusters. Extreme cost variance is isolated strictly to Zero-Day events.
-        * **Operational Speed:** A strong positive correlation confirms that accelerating incident response time directly maximizes service uptime and revenue preservation.
-        
-        **Act 3: Forward-Looking Action Plan**
-        1. **Targeted Capital Investment:** Deploy automated Zero-Day response scripts in **{top_cost_center}** to flatten cost volatility.
-        2. **UI Gestalt Optimization:** Implement bounded card containers on analyst screens to accelerate incident triage speeds.
-        """
-        st.success("Executive Narrative Generated!")
-        st.markdown(story)
+        st.success(f"**Executive Story generated for {audience}:** Operational volume is highest in {top_cost_center}. Targeting zero-day response automation in this hub will maximize overall system uptime.")
     st.markdown("</div>", unsafe_allow_html=True)
