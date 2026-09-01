@@ -12,7 +12,7 @@ st.set_page_config(
     page_icon="🛡️"
 )
 
-# --- 2. CLEAN DARK THEME CSS ---
+# --- 2. CLEAN SLATE DARK THEME CSS ---
 st.markdown("""
 <style>
     /* Dark Slate Background */
@@ -39,7 +39,7 @@ st.markdown("""
         color: #94A3B8 !important;
     }
 
-    /* Multi-select Badges (Soft Cyan / Dark Text for High Readability) */
+    /* Multi-select Badges (Cyan / Dark Text) */
     span[data-baseweb="tag"] {
         background-color: #38BDF8 !important;
         color: #0F172A !important;
@@ -111,7 +111,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "🤖 AI Executive Briefing"
 ])
 
-# --- TAB 1: SPATIAL MAP (FIXED FOR PLOTLY UPGRADE) ---
+# --- TAB 1: SPATIAL MAP (WITH DYNAMIC AUTO-CENTERING & SIZE ATTRIBUTES) ---
 with tab1:
     st.markdown("<div class='css-card'>", unsafe_allow_html=True)
     st.subheader("1. Spatial Regional Performance Mapping")
@@ -124,17 +124,35 @@ with tab1:
         "Severity_Score": "count"
     }).reset_index().rename(columns={"Severity_Score": "Incident_Count"})
     
-    # Updated to px.scatter_map (or fallback to scatter_geo for universal compatibility)
+    # Dynamic Map Centering Calculation
+    avg_lat = spatial_df["Lat"].mean() if not spatial_df.empty else 20
+    avg_lon = spatial_df["Lon"].mean() if not spatial_df.empty else 0
+    map_zoom = 3 if len(spatial_df) < 3 else 1.5
+
     try:
         fig_map = px.scatter_map(
-            spatial_df, lat="Lat", lon="Lon", size="Incident_Count", color="Mitigation_Cost_USD",
-            hover_name="Data_Center", color_continuous_scale="Viridis", size_max=30, zoom=1,
+            spatial_df, 
+            lat="Lat", 
+            lon="Lon", 
+            size="Incident_Count",             # SIZE ATTRIBUTE
+            color="Mitigation_Cost_USD", 
+            hover_name="Data_Center", 
+            color_continuous_scale="Viridis",  # PALETTE ATTRIBUTE
+            size_max=30,                       # SIZE RANGE
+            zoom=map_zoom, 
+            center={"lat": avg_lat, "lon": avg_lon}, # DYNAMIC RE-CENTERING
             title="Global Incident Density & Financial Impact Map"
         )
     except AttributeError:
         fig_map = px.scatter_geo(
-            spatial_df, lat="Lat", lon="Lon", size="Incident_Count", color="Mitigation_Cost_USD",
-            hover_name="Data_Center", color_continuous_scale="Viridis", size_max=30,
+            spatial_df, 
+            lat="Lat", 
+            lon="Lon", 
+            size="Incident_Count",             # SIZE ATTRIBUTE
+            color="Mitigation_Cost_USD", 
+            hover_name="Data_Center", 
+            color_continuous_scale="Viridis",  # PALETTE ATTRIBUTE
+            size_max=30,
             title="Global Incident Density & Financial Impact Map"
         )
         
@@ -142,15 +160,22 @@ with tab1:
     st.plotly_chart(fig_map, use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# --- TAB 2: VIOLIN & BOX PLOTS ---
+# --- TAB 2: VIOLIN & BOX PLOTS (ALPHA & PALETTE ATTRIBUTES) ---
 with tab2:
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("<div class='css-card'>", unsafe_allow_html=True)
         fig_violin = px.violin(
-            filtered_df, x="Threat_Type", y="Mitigation_Cost_USD", color="Threat_Type",
-            box=True, points="outliers", title="Mitigation Cost Distribution"
+            filtered_df, 
+            x="Threat_Type", 
+            y="Mitigation_Cost_USD", 
+            color="Threat_Type",
+            box=True, 
+            points="outliers", 
+            color_discrete_sequence=px.colors.qualitative.Plotly, # PALETTE
+            title="Mitigation Cost Distribution"
         )
+        fig_violin.update_traces(marker=dict(opacity=0.7))        # ALPHA ATTRIBUTE
         fig_violin.update_layout(template="plotly_dark", paper_bgcolor="#1E293B", plot_bgcolor="#1E293B")
         st.plotly_chart(fig_violin, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
@@ -158,14 +183,19 @@ with tab2:
     with col2:
         st.markdown("<div class='css-card'>", unsafe_allow_html=True)
         fig_box = px.box(
-            filtered_df, x="Data_Center", y="Response_Time_Sec", color="Data_Center",
+            filtered_df, 
+            x="Data_Center", 
+            y="Response_Time_Sec", 
+            color="Data_Center",
+            color_discrete_sequence=px.colors.qualitative.Dark24, # PALETTE
             title="Regional Latency Variance"
         )
+        fig_box.update_traces(marker=dict(opacity=0.8))           # ALPHA ATTRIBUTE
         fig_box.update_layout(template="plotly_dark", paper_bgcolor="#1E293B", plot_bgcolor="#1E293B")
         st.plotly_chart(fig_box, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-# --- TAB 3: HEATMAP & PAIRPLOT ---
+# --- TAB 3: HEATMAP & PAIRPLOT (HUE, PALETTE, MARKERS, ALPHA) ---
 with tab3:
     c_hm, c_pp = st.columns([1, 1])
     with c_hm:
@@ -177,7 +207,18 @@ with tab3:
         fig_hm, ax_hm = plt.subplots(figsize=(6, 5))
         fig_hm.patch.set_facecolor('#1E293B')
         ax_hm.set_facecolor('#1E293B')
-        sns.heatmap(corr, annot=True, fmt=".2f", cmap="mako", ax=ax_hm, cbar=False, annot_kws={"color": "white"})
+        
+        # Seaborn Heatmap with Palette and Alpha
+        sns.heatmap(
+            corr, 
+            annot=True, 
+            fmt=".2f", 
+            cmap="mako",               # PALETTE ATTRIBUTE
+            alpha=0.9,                  # ALPHA ATTRIBUTE
+            ax=ax_hm, 
+            cbar=False, 
+            annot_kws={"color": "white"}
+        )
         ax_hm.tick_params(colors='white')
         st.pyplot(fig_hm)
         st.markdown("</div>", unsafe_allow_html=True)
@@ -186,7 +227,16 @@ with tab3:
         st.markdown("<div class='css-card'>", unsafe_allow_html=True)
         st.subheader("Multivariate Pairplot Grid")
         pair_cols = ["Mitigation_Cost_USD", "Severity_Score", "System_Downtime_Mins"]
-        fig_pair = sns.pairplot(filtered_df[pair_cols + ["Threat_Type"]], hue="Threat_Type", palette="mako", corner=True)
+        
+        # Seaborn Pairplot using Hue, Palette, Markers, and Alpha
+        fig_pair = sns.pairplot(
+            filtered_df[pair_cols + ["Threat_Type"]], 
+            hue="Threat_Type",         # HUE ATTRIBUTE
+            palette="viridis",         # PALETTE ATTRIBUTE
+            markers=["o", "s", "D", "^", "v"], # MARKERS ATTRIBUTE
+            plot_kws={"alpha": 0.6},    # ALPHA ATTRIBUTE
+            corner=True
+        )
         fig_pair.fig.patch.set_facecolor('#1E293B')
         for ax in fig_pair.axes.flatten():
             if ax is not None:
@@ -204,6 +254,6 @@ with tab4:
     audience = st.selectbox("Target Stakeholder", ["CISO", "CFO", "Board of Directors"])
     
     if st.button("🚀 Generate Executive Briefing"):
-        top_cost_center = spatial_df.loc[spatial_df['Mitigation_Cost_USD'].idxmax()]['Data_Center']
+        top_cost_center = spatial_df.loc[spatial_df['Mitigation_Cost_USD'].idxmax()]['Data_Center'] if not spatial_df.empty else "Global Hubs"
         st.success(f"**Executive Story generated for {audience}:** Operational volume is highest in {top_cost_center}. Targeting zero-day response automation in this hub will maximize overall system uptime.")
     st.markdown("</div>", unsafe_allow_html=True)
